@@ -1,5 +1,6 @@
 import express from 'express'
 import cors from 'cors'
+import bcrypt from 'bcrypt'
 
 import emailVerifier from './middlewares/emailVerifier'
 import idVerifier from './middlewares/idVerifier'
@@ -22,16 +23,18 @@ let idNote = 1
 
 //-------------------User Control---------------------------------------------------------
 
-app.post('/singup', emailVerifier, (req, res) => {
+app.post('/singup', emailVerifier, async(req, res) => {
     let data = req.body
     let email = data.email
+    let pass = data.pass
+    let hashPassword = await bcrypt.hash(pass , 10)
     let emailAlreadyRegistered = user.findIndex(user => user.email === email)
     if (emailAlreadyRegistered == -1) {
         user.push({
             idUser: idUser,
             name: data.name,
             email: data.email,
-            pass: data.pass
+            pass: hashPassword
         })
         idUser++
         res
@@ -50,16 +53,17 @@ app.get('/getusers', (req, res) => {
         .json({ success: true, msg: "Users retrieved successfully", data: user })
 })
 
-app.put('/updateuser/:userID', (req, res) => {
+app.put('/updateuser/:userID', async(req, res) => {
     let data = req.body
     let userID = Number(req.params.userID)
-
+    let newPassword = data.newPass
+    let hashPassword = await bcrypt.hash(newPassword , 10)
     let indexUser = user.findIndex(user => user.idUser == userID)
     if (indexUser != -1) {
         const userUpdate = user[indexUser]
         userUpdate.name = data.newName
         userUpdate.email = data.newEmail
-        userUpdate.pass = data.newPass
+        userUpdate.pass = hashPassword
         res
             .status(200)
             .json({ success: true, msg: "User updated successfully", newUser: userUpdate })
@@ -93,7 +97,7 @@ app.get('/getnote', (req, res) => {
         .json({ sucess: true, msg: "Notes retrieved successfully", data: annotations })
 })
 
-app.post('/createnote', (req, res) => {
+app.post('/createnote', async(req, res) => {
     let data = req.body
     let email = data.email
     let password = data.pass
@@ -101,7 +105,8 @@ app.post('/createnote', (req, res) => {
     let findEmail = user.findIndex(user => user.email === email)
     if (findEmail != -1) {
         let userEmail = user[findEmail]
-        if (userEmail.pass === password) {
+        let passwordMath = await bcrypt.compare(password, userEmail.pass)
+        if (passwordMath) {
             let findEmailAlreadyAnnotations = annotations.findIndex(user => user.email === email)
             if (findEmailAlreadyAnnotations == -1) {
                 annotations.push({
@@ -144,7 +149,7 @@ app.delete('/deletenote/:idAnnotation', (req, res) => {
     }
 })
 
-app.put('/updatenote/:idAnnotation', (req, res) => {
+app.put('/updatenote/:idAnnotation', async(req, res) => {
     let idAnnotation = Number(req.params.idAnnotation)
     let data = req.body
     let email = data.email
@@ -155,7 +160,8 @@ app.put('/updatenote/:idAnnotation', (req, res) => {
     let findID = annotations.findIndex(annotation => annotation.idAnnotation === idAnnotation)
     if (findID != -1) {
         let userEmail = user[findEmail]
-        if (userEmail.pass === password) {
+        let passwordMath = await bcrypt.compare(password, userEmail.pass)
+        if (passwordMath) {
             let bringAnotation = annotations[findID]
             bringAnotation.annotations = note
             res
