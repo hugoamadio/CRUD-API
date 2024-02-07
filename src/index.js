@@ -22,7 +22,7 @@ let idNote = 1
 
 //-------------------User Control---------------------------------------------------------
 
-app.post('/singup', (req, res) => {
+app.post('/singup', emailVerifier, (req, res) => {
     let data = req.body
     let email = data.email
     let emailAlreadyRegistered = user.findIndex(user => user.email === email)
@@ -70,7 +70,7 @@ app.put('/updateuser/:userID', (req, res) => {
     }
 })
 
-app.delete('/excludeuser/:userID', (req, res) => {
+app.delete('/excludeuser/:userID', idVerifier, (req, res) => {
     let userID = Number(req.params.userID)
     let indexUser = user.findIndex(user => user.idUser == userID)
     if (indexUser != -1) {
