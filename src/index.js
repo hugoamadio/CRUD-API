@@ -85,3 +85,90 @@ app.delete('/excludeuser/:userID', (req, res) => {
     }
 })
 
+//-------------------Note Control---------------------------------------------------------
+
+app.get('/getnote', (req, res) => {
+    res
+        .status(200)
+        .json({ sucess: true, msg: "Notes retrieved successfully", data: annotations })
+})
+
+app.post('/createnote', (req, res) => {
+    let data = req.body
+    let email = data.email
+    let password = data.pass
+    let note = data.note
+    let findEmail = user.findIndex(user => user.email === email)
+    if (findEmail != -1) {
+        let userEmail = user[findEmail]
+        if (userEmail.pass === password) {
+            let findEmailAlreadyAnnotations = annotations.findIndex(user => user.email === email)
+            if (findEmailAlreadyAnnotations == -1) {
+                annotations.push({
+                    idAnnotation: idNote,
+                    email: email,
+                    annotations: note
+                })
+                idNote++
+                res
+                    .status(200)
+                    .json({ sucess: true, msg: "Logged in successfully", data: annotations })
+            } else {
+                res
+                    .status(400)
+                    .json({ success: false, msg: "User already has a message registered." })
+            }
+
+        } else {
+            res
+                .status(401)
+                .json({ success: false, msg: "Error: Invalid password." })
+        }
+    } else {
+        res.json("Email not found, User not registred")
+    }
+})
+
+app.delete('/deletenote/:idAnnotation', (req, res) => {
+    let idAnnotation = Number(req.params.idAnnotation)
+    let findID = annotations.findIndex(annotation => annotation.idAnnotation === idAnnotation)
+    if (findID != -1) {
+        annotations.splice(findID, 1)
+        res
+            .status(200)
+            .json({ success: true, msg: "Message has been deleted." })
+    } else {
+        res
+            .status(400)
+            .json({ success: false, msg: "No message was found with the indicated ID." })
+    }
+})
+
+app.put('/updatenote/:idAnnotation', (req, res) => {
+    let idAnnotation = Number(req.params.idAnnotation)
+    let data = req.body
+    let email = data.email
+    let password = data.pass
+    let note = data.note
+
+    let findEmail = user.findIndex(user => user.email === email)
+    let findID = annotations.findIndex(annotation => annotation.idAnnotation === idAnnotation)
+    if (findID != -1) {
+        let userEmail = user[findEmail]
+        if (userEmail.pass === password) {
+            let bringAnotation = annotations[findID]
+            bringAnotation.annotations = note
+            res
+                .status(200)
+                .json({ success: true, msg: "Message for altered message.", data: bringAnotation })
+        } else {
+            res
+                .status(400)
+                .json({ sucess: false, msg: "Incorrect username or password." })
+        }
+    } else {
+        res
+            .status(400)
+            .json({ success: false, msg: "Annotation not found" })
+    }
+})
