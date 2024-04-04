@@ -16,51 +16,75 @@ app.get('/', (request, response) => {
 
 app.listen(8080, () => console.log("Servidor iniciado"))
 
-let user = []
+let users = []
 let annotations = []
 let idUser = 1
 let idNote = 1
 
 //-------------------User Control---------------------------------------------------------
 
-app.post('/singup', emailVerifier, async(req, res) => {
-    let data = req.body
-    let email = data.email
-    let pass = data.pass
-    let hashPassword = await bcrypt.hash(pass , 10)
-    let emailAlreadyRegistered = user.findIndex(user => user.email === email)
+app.post('/singup', emailVerifier, async (req, res) => {
+    let { email } = req.body
+    let { pass } = req.body
+    let { name } = req.body
+    let hashPassword = await bcrypt.hash(pass, 10)
+    let emailAlreadyRegistered = users.findIndex(user => user.email === email)
     if (emailAlreadyRegistered == -1) {
-        user.push({
+        users.push({
             idUser: idUser,
-            name: data.name,
-            email: data.email,
+            name: name,
+            email: email,
             pass: hashPassword
         })
         idUser++
-        res
+        return res
             .status(201)
-            .json({ sucess: true, msg: "Success: You have been successfully registered!" })
+            .json({ success: true, msg: "Success: You have been successfully registered!" })
     } else {
-        res
+        return res
             .status(409)
-            .json({ sucess: false, msg: "Error: This email address is already registered. Please use a different email address or try logging in." })
+            .json({ success: false, msg: "Error: This email address is already registered. Please use a different email address or try logging in." })
     }
 })
 
-app.get('/getusers', (req, res) => {
-    res
-        .status(200)
-        .json({ success: true, msg: "Users retrieved successfully", data: user })
+app.post('/login', async (req, res) => {
+    const { email } = req.body
+    const { pass } = req.body
+
+    const user = users.find((item) => item.email === email)
+    if (!user) {
+        return res
+            .status(401)
+            .json({ success: false, msg: "User not found" });
+    }
+
+    const checkUser = await bcrypt.compare(pass, user.pass)
+
+    if (checkUser) {
+        return res
+            .status(200)
+            .json({ success: true, msg: " logged" })
+    }
+
+    return res
+        .status(401)
+        .json({ success: false, msg: "Invalid password or email" })
 })
 
-app.put('/updateuser/:userID', async(req, res) => {
+app.get('/users', (req, res) => {
+    res
+        .status(200)
+        .json({ success: true, msg: "Users retrieved successfully", data: users })
+})
+
+app.put('/users/:userID', async (req, res) => {
     let data = req.body
     let userID = Number(req.params.userID)
-    let newPassword = data.newPass
-    let hashPassword = await bcrypt.hash(newPassword , 10)
-    let indexUser = user.findIndex(user => user.idUser == userID)
+    let {newPassword} = req.body
+    let hashPassword = await bcrypt.hash(newPassword, 10)
+    let indexUser = users.findIndex(user => user.idUser == userID)
     if (indexUser != -1) {
-        const userUpdate = user[indexUser]
+        const userUpdate = users[indexUser]
         userUpdate.name = data.newName
         userUpdate.email = data.newEmail
         userUpdate.pass = hashPassword
@@ -74,11 +98,11 @@ app.put('/updateuser/:userID', async(req, res) => {
     }
 })
 
-app.delete('/excludeuser/:userID', idVerifier, (req, res) => {
+app.delete('/users/:userID', idVerifier, (req, res) => {
     let userID = Number(req.params.userID)
-    let indexUser = user.findIndex(user => user.idUser == userID)
+    let indexUser = users.findIndex(user => user.idUser == userID)
     if (indexUser != -1) {
-        user.splice(indexUser, 1)
+        users.splice(indexUser, 1)
         res
             .status(200)
             .json({ success: true, msg: "User successfully deleted" })
@@ -97,14 +121,14 @@ app.get('/getnote', (req, res) => {
         .json({ sucess: true, msg: "Notes retrieved successfully", data: annotations })
 })
 
-app.post('/createnote', async(req, res) => {
+app.post('/note', async (req, res) => {
     let data = req.body
     let email = data.email
     let password = data.pass
     let note = data.note
-    let findEmail = user.findIndex(user => user.email === email)
+    let findEmail = users.findIndex(user => user.email === email)
     if (findEmail != -1) {
-        let userEmail = user[findEmail]
+        let userEmail = users[findEmail]
         let passwordMath = await bcrypt.compare(password, userEmail.pass)
         if (passwordMath) {
             let findEmailAlreadyAnnotations = annotations.findIndex(user => user.email === email)
@@ -134,7 +158,7 @@ app.post('/createnote', async(req, res) => {
     }
 })
 
-app.delete('/deletenote/:idAnnotation', (req, res) => {
+app.delete('/note/:idAnnotation', (req, res) => {
     let idAnnotation = Number(req.params.idAnnotation)
     let findID = annotations.findIndex(annotation => annotation.idAnnotation === idAnnotation)
     if (findID != -1) {
@@ -149,17 +173,17 @@ app.delete('/deletenote/:idAnnotation', (req, res) => {
     }
 })
 
-app.put('/updatenote/:idAnnotation', async(req, res) => {
+app.put('/note/:idAnnotation', async (req, res) => {
     let idAnnotation = Number(req.params.idAnnotation)
     let data = req.body
     let email = data.email
     let password = data.pass
     let note = data.note
 
-    let findEmail = user.findIndex(user => user.email === email)
+    let findEmail = users.findIndex(user => user.email === email)
     let findID = annotations.findIndex(annotation => annotation.idAnnotation === idAnnotation)
     if (findID != -1) {
-        let userEmail = user[findEmail]
+        let userEmail = users[findEmail]
         let passwordMath = await bcrypt.compare(password, userEmail.pass)
         if (passwordMath) {
             let bringAnotation = annotations[findID]
